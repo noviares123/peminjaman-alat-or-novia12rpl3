@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+
+    <!-- Judul halaman, diambil dari controller, default 'Dashboard' -->
+    <title><?= $data['judul'] ?? 'Dashboard'; ?></title>
+
+    <!-- Load CSS utama, pakai time() biar tidak ke-cache -->
+    <link rel="stylesheet" href="<?= BASEURL; ?>/public/assets/style.css?v=<?= time(); ?>">
+</head>
+<body>
+
+<!-- ===== NAVBAR ===== -->
+<div class="navbar">
+
+    <!-- Brand / Judul aplikasi -->
+    <div class="navbar-brand">
+        <h3>Peminjaman Peralatan Olahraga</h3>
+    </div>
+    
+    <!-- Menu navigasi -->
+    <nav class="navbar-nav">
+        <?php
+        // Ambil role dari session, ubah ke huruf kecil & hilangkan spasi
+        $role = strtolower(trim($_SESSION['role'] ?? ''));
+        
+        // ===== MENU ADMIN =====
+        if ($role === 'admin') : ?>
+            <a href="<?= BASEURL; ?>/admin/dashboard" class="nav-link">🏠 Dashboard</a>
+            <a href="<?= BASEURL; ?>/admin/pengguna" class="nav-link">👥 Pengguna</a>
+            <a href="<?= BASEURL; ?>/admin/alat" class="nav-link">🏃‍♂️ Alat</a>
+            <a href="<?= BASEURL; ?>/admin/kategori" class="nav-link">📂 Kategori</a>
+            <a href="<?= BASEURL; ?>/admin/peminjaman" class="nav-link">📋 Peminjaman</a>
+            <a href="<?= BASEURL; ?>/admin/logAktivitas" class="nav-link">📝 Log Aktivitas</a>
+
+        <!-- ===== MENU PETUGAS ===== -->
+        <?php elseif ($role === 'petugas') : ?>
+            <a href="<?= BASEURL; ?>/petugas/dashboard" class="nav-link">🏠 Dashboard</a>
+            <a href="<?= BASEURL; ?>/petugas/setujui" class="nav-link">✅ Setujui Peminjaman</a>
+            <a href="<?= BASEURL; ?>/petugas/pantau" class="nav-link">👁️ Pantau Pengembalian</a>
+            <a href="<?= BASEURL; ?>/petugas/riwayat" class="nav-link">📋 Riwayat Peminjaman</a>
+            <a href="<?= BASEURL; ?>/petugas/daftarAlat" class="nav-link">🛠️ Daftar Alat</a>
+            <a href="<?= BASEURL; ?>/petugas/cetak" class="nav-link">🖨️ Cetak Laporan</a>
+
+        <!-- ===== MENU PEMINJAM ===== -->
+        <?php elseif ($role === 'peminjam') : ?>
+            <a href="<?= BASEURL; ?>/peminjam/dashboard" class="nav-link">🏠 Dashboard</a>
+            <a href="<?= BASEURL; ?>/peminjam/daftar" class="nav-link">📋 Daftar Alat</a>
+            <a href="<?= BASEURL; ?>/peminjam/riwayat" class="nav-link">📜 Riwayat Peminjaman</a>
+        <?php endif; ?>
+        
+        <!-- Tombol logout (semua role) -->
+        <a href="<?= BASEURL; ?>/auth/logout"
+           onclick="return confirm('Yakin ingin keluar?')"
+           class="nav-link logout">
+            🚪 Logout
+        </a>
+    </nav>
+    
+    <!-- Info user di navbar -->
+    <div class="navbar-user">
+        <img src="<?= BASEURL; ?>/public/assets/profil.png" alt="Profile" class="profile-img">
+        <span><?= $_SESSION['nama'] ?? 'User'; ?></span>
+    </div>
+</div>
+
+<!-- ===== KONTEN UTAMA ===== -->
+<div class="main-content">
+
+    <!-- Header halaman -->
+    <div class="header-bar">
+        <h3><?= $data['judul'] ?? 'Dashboard'; ?></h3>
+    </div>
+    
+    <!-- Isi halaman -->
+    <div class="content">
+
+    <style>
+        /* RESET */
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background:#f8f9fa;
+    padding-top:60px;
+}
+
+/* NAVBAR */
+.navbar{
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    height:60px;
+    background:linear-gradient(135deg, #800020 0%, #5c0011 100%);
+    color:white;
+    display:flex;
+    align-items:center;
+    padding:0 20px;
+    z-index:1000;
+    box-shadow:0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar-brand{
+    margin-right:30px;
+}
+
+.navbar-brand h3{
+    font-size:16px;
+    font-weight:600;
+    color:white;
+}
+
+.navbar-nav{
+    display:flex;
+    align-items:center;
+    gap:0;
+    flex:1;
+}
+
+.nav-link{
+    color:white;
+    text-decoration:none;
+    padding:8px 15px;
+    font-size:13px;
+    border-right:1px solid rgba(255,255,255,0.1);
+    white-space:nowrap;
+    transition:background 0.3s;
+}
+
+.nav-link:hover{
+    background:rgba(255,255,255,0.1);
+}
+
+.nav-link.logout{
+    background:#800020;
+    margin-left:auto;
+    border-right:none;
+    border-radius:4px;
+}
+
+.nav-link.logout:hover{
+    background:#800020;
+}
+
+.navbar-user{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:13px;
+    color:white;
+    margin-left:20px;
+    padding:5px 12px;
+    background:rgba(255,255,255,0.1);
+    border-radius:20px;
+}
+
+.profile-img{
+    width:24px;
+    height:24px;
+    border-radius:50%;
+    border:2px solid white;
+}
+
+/* MAIN CONTENT */
+.main-content{
+    background:#f8f9fa;
+    min-height:calc(100vh - 60px);
+}
+
+.header-bar{
+    background:white;
+    padding:20px 30px;
+    border-bottom:1px solid #dee2e6;
+    box-shadow:0 1px 3px rgba(0,0,0,0.05);
+}
+
+.header-bar h3{
+    color:#2c3e50;
+    font-size:24px;
+    margin:0;
+    font-weight:600;
+}
+
+/* CONTENT */
+.content{
+    padding:30px;
+    background:#f8f9fa;
+}
+
+.content h3{
+    color:#2c3e50;
+    font-size:20px;
+    margin-bottom:20px;
+    font-weight:600;
+}
+
+/* DASHBOARD */
+.dashboard-container{
+    max-width:1400px;
+    margin:0 auto;
+    padding:20px;
+}
+
+.dashboard-container h2{
+    color:#2c3e50;
+    font-size:28px;
+    margin-bottom:10px;
+}
+
+.dashboard-container > p{
+    color:#6c757d;
+    font-size:16px;
+    margin-bottom:25px;
+}
+
+/* CARDS */
+.cards{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));
+    gap:20px;
+    margin-top:20px;
+    margin-bottom:30px;
+}
+
+.card{
+    background:white;
+    padding:25px;
+    border-radius:12px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.08);
+    transition:all 0.3s;
+    display:flex;
+    align-items:center;
+    gap:20px;
+    position:relative;
+    overflow:hidden;
+}
+
+.card::before{
+    content:'';
+    position:absolute;
+    left:0;
+    top:0;
+    bottom:0;
+    width:4px;
+}
+
+.card:hover{
+    transform:translateY(-5px);
+    box-shadow:0 8px 20px rgba(0,0,0,0.12);
+}
+
+.card-blue::before{
+    background:linear-gradient(135deg, #800020 0%, #5c0011 100%);
+}
+
+.card-green::before{
+    background:linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.card-purple::before{
+    background:linear-gradient(135deg, #9b1c31 0%, #6d0019 100%);
+}
+
+.card-orange::before{
+    background:linear-gradient(135deg, #c84b31 0%, #a0341f 100%);
+}
+
+.card-yellow::before{
+    background:linear-gradient(135deg, #d4a574 0%, #b8935f 100%);
+}
+
+.card-icon{
+    font-size:48px;
+    opacity:0.9;
+    flex-shrink:0;
+}
+
+.card-body{
+    flex:1;
+}
+
+.card-body h4{
+    color:#6c757d;
+    font-size:13px;
+    margin:0 0 8px 0;
+    font-weight:500;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+}
+
+.card-body h1{
+    color:#2c3e50;
+    font-size:36px;
+    margin:0 0 10px 0;
+    font-weight:700;
+}
+
+.card-link{
+    color:#6c757d;
+    text-decoration:none;
+    font-size:13px;
+    transition:color 0.3s;
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+}
+
+.card-link:hover{
+    color:#2c3e50;
+}
+
+/* ALERT */
+.alert{
+    padding:15px 20px;
+    border-radius:8px;
+    margin-bottom:25px;
+    border-left:4px solid;
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.alert-danger{
+    background:#fee;
+    border-color:#dc3545;
+    color:#721c24;
+}
+
+.alert-icon{
+    font-size:24px;
+}
+
+.alert-content{
+    flex:1;
+}
+
+.alert-link{
+    color:#0d6efd;
+    text-decoration:none;
+    font-weight:600;
+}
+
+.alert-link:hover{
+    text-decoration:underline;
+}
+
+/* INFO SECTION */
+.info-section{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));
+    gap:20px;
+    margin-bottom:25px;
+}
+
+.info-box{
+    background:white;
+    padding:20px;
+    border-radius:8px;
+    box-shadow:0 2px 4px rgba(0,0,0,0.05);
+}
+
+.info-box h3{
+    color:#2c3e50;
+    font-size:18px;
+    margin-bottom:15px;
+    font-weight:600;
+}
+
+.quick-actions{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+.info-list{
+    list-style:none;
+    padding:0;
+}
+
+.info-list li{
+    padding:10px 0;
+    border-bottom:1px solid #e9ecef;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.info-list li:last-child{
+    border-bottom:none;
+}
+
+.info-label{
+    color:#6c757d;
+    font-size:14px;
+}
+
+.info-value{
+    color:#2c3e50;
+    font-weight:600;
+    font-size:14px;
+}
+
+/* TIPS SECTION */
+.tips-section{
+    background:#fff3cd;
+    border-left:4px solid #ffc107;
+    padding:15px 20px;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.tip-box{
+    background:linear-gradient(135deg, #800020 0%, #5c0011 100%);
+    color:white;
+    border-radius:12px;
+    padding:15px 20px;
+    display:flex;
+    align-items:center;
+    gap:15px;
+    box-shadow:0 4px 12px rgba(128,0,32,0.3);
+}
+
+.tip-icon{
+    font-size:24px;
+    flex-shrink:0;
+}
+
+.tip-content{
+    color:white;
+    font-size:14px;
+    line-height:1.6;
+}
+
+.tip-content strong{
+    font-weight:600;
+}
+
+/* TABLE */
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+    background:white;
+    border-radius:8px;
+    overflow:hidden;
+    box-shadow:0 2px 4px rgba(0,0,0,0.05);
+}
+
+th,td{
+    padding:12px 15px;
+    text-align:center;
+    border-bottom:1px solid #e9ecef;
+    font-size:14px;
+}
+
+th{
+    background:linear-gradient(135deg, #800020 0%, #5c0011 100%);
+    color:white;
+    font-weight:600;
+    text-transform:uppercase;
+    font-size:12px;
+    letter-spacing:0.5px;
+}
+
+tr:hover{
+    background:#f8f9fa;
+}
+
+tr:last-child td{
+    border-bottom:none;
+}
+
+/* FORM */
+input, select, textarea{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid #ced4da;
+    border-radius:6px;
+    font-size:14px;
+    transition:border-color 0.3s, box-shadow 0.3s;
+}
+
+input:focus, select:focus, textarea:focus{
+    outline:none;
+    border-color:#800020;
+    box-shadow:0 0 0 3px rgba(128,0,32,0.1);
+}
+
+label{
+    display:block;
+    margin-bottom:8px;
+    color:#495057;
+    font-weight:500;
+    font-size:14px;
+}
+
+/* BUTTON */
+button,
+.button,
+.btn,
+.btn-primary,
+.btn-success,
+.btn-info,
+.btn-secondary,
+.btn-danger,
+.btn-warning,
+.btn-modal{
+    background:linear-gradient(135deg, #800020 0%, #5c0011 100%);
+    color:white;
+    border:none;
+    padding:8px 16px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:13px;
+    font-weight:500;
+    text-decoration:none;
+    display:inline-block;
+    transition:all 0.3s;
+    text-align:center;
+    line-height:1.5;
+}
+
+button:hover,
+.button:hover,
+.btn:hover,
+.btn-primary:hover,
+.btn-success:hover,
+.btn-info:hover,
+.btn-secondary:hover,
+.btn-danger:hover,
+.btn-warning:hover,
+.btn-modal:hover{
+    background:linear-gradient(135deg, #a0002a 0%, #700018 100%);
+    transform:translateY(-1px);
+    box-shadow:0 4px 8px rgba(128,0,32,0.3);
+}
+
+button:active,
+.button:active,
+.btn:active,
+.btn-primary:active,
+.btn-success:active,
+.btn-info:active,
+.btn-secondary:active,
+.btn-danger:active,
+.btn-warning:active,
+.btn-modal:active{
+    transform:translateY(0);
+}
+
+/* BOX */
+.box{
+    background:white;
+    padding:25px;
+    border:1px solid #e9ecef;
+    border-radius:8px;
+    margin-bottom:20px;
+    box-shadow:0 2px 4px rgba(0,0,0,0.05);
+}
+
+.box h3{
+    color:#2c3e50;
+    margin-bottom:20px;
+    font-size:18px;
+    font-weight:600;
+    padding-bottom:10px;
+    border-bottom:2px solid #800020;
+}
+
+/* MODAL */
+.modal{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.5);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+    backdrop-filter:blur(2px);
+}
+
+.modal.show{
+    display:flex;
+}
+
+.modal-content{
+    background:white;
+    width:90%;
+    max-width:500px;
+    padding:25px;
+    border-radius:8px;
+    box-shadow:0 10px 40px rgba(0,0,0,0.2);
+    position:relative;
+}
+
+.close-modal{
+    position:absolute;
+    right:15px;
+    top:15px;
+    font-size:24px;
+    cursor:pointer;
+    color:#6c757d;
+    transition:color 0.3s;
+}
+
+.close-modal:hover{
+    color:#dc3545;
+}
+
+.modal-actions{
+    display:flex;
+    gap:10px;
+    margin-top:20px;
+}
+
+.button.secondary{
+    background:linear-gradient(135deg, #800020 0%, #5c0011 100%);
+    color:white;
+}
+
+.button.secondary:hover{
+    background:linear-gradient(135deg, #a0002a 0%, #700018 100%);
+}
+
+/* BADGE */
+.badge{
+    padding:4px 10px;
+    border-radius:12px;
+    font-size:11px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    display:inline-block;
+}
+
+.admin{background:#28a745;color:white;}
+.petugas{background:#ffc107;color:#000;}
+.peminjam{background:#17a2b8;color:white;}
+
+.badge-success{background:#28a745;color:white;}
+.badge-danger{background:#dc3545;color:white;}
+.badge-info{background:#17a2b8;color:white;}
+
+/* CETAK LAPORAN */
+.no-print{
+    margin-bottom:20px;
+}
+
+.header-laporan{
+    text-align:center;
+    margin-bottom:20px;
+    padding-bottom:15px;
+    border-bottom:2px solid #000;
+}
+
+.header-laporan h2{
+    font-size:20px;
+    margin-bottom:5px;
+}
+
+.header-laporan h3{
+    font-size:16px;
+    font-weight:normal;
+}
+
+.info-laporan{
+    margin-bottom:20px;
+}
+
+.footer-laporan{
+    margin-top:40px;
+    text-align:right;
+}
+
+.footer-laporan .ttd{
+    margin-top:60px;
+    text-decoration:underline;
+}
+
+@media print{
+    .no-print{
+        display:none;
+    }
+    
+    body{
+        padding-top:0;
+    }
+    
+    .navbar{
+        display:none;
+    }
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px){
+    .navbar-brand h3{
+        font-size:14px;
+    }
+    
+    .nav-link{
+        padding:8px 10px;
+        font-size:12px;
+    }
+    
+    .content{
+        padding:15px;
+    }
+    
+    .cards{
+        grid-template-columns:1fr;
+    }
+    
+    .info-section{
+        grid-template-columns:1fr;
+    }
+}
+
+
+/* BTN LARGE */
+.btn-large{
+    padding:15px 25px !important;
+    font-size:16px !important;
+    font-weight:600 !important;
+}
+
+    </style>
